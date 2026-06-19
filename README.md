@@ -143,7 +143,7 @@ Use slicers:
 
 ---
 
-## Project Structure (Quick Reference)
+## Project Structure
 
 ```text
 spendwise/
