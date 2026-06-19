@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Edit Expense{% endblock %}
+{% block page_title %}Edit Expense{% endblock %}
+
+{% block content %}
+<div style="max-width:680px;margin:0 auto;">
+  <div class="chart-panel">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:28px;">
+      <div style="width:48px;height:48px;border-radius:14px;background:var(--grad-orange);display:flex;align-items:center;justify-content:center;font-size:1.4rem;">✏️</div>
+      <div>
+        <h2 style="font-size:1.25rem;margin-bottom:2px;">Edit Expense</h2>
+        <div style="font-size:.82rem;color:var(--text-muted);">ID #{{ expense.id }} — created {{ expense.created_at.strftime('%d %b %Y') }}</div>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('expenses.edit_expense', expense_id=expense.id) }}">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Amount *</label>
+          <div style="position:relative;">
+            <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--neon-orange);font-weight:700;">{{ current_user.currency_symbol }}</span>
+            <input type="number" name="amount" class="form-control" style="padding-left:32px;"
+                   step="0.01" min="0.01" required value="{{ expense.amount }}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date *</label>
+          <input type="date" name="expense_date" class="form-control" required
+                 value="{{ expense.expense_date.isoformat() }}">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Category *</label>
+          <select name="category_id" class="form-control" required>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}" {% if cat.id == expense.category_id %}selected{% endif %}>
+              {{ cat.icon }} {{ cat.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Method</label>
+          <select name="payment_method" class="form-control">
+            {% for m in ['cash','card','upi','netbanking','wallet','other'] %}
+            <option value="{{ m }}" {% if m == expense.payment_method %}selected{% endif %}>{{ m.title() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <input type="text" name="description" class="form-control" value="{{ expense.description or '' }}" placeholder="What did you spend on?">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Tags</label>
+        <input type="text" name="tags" class="form-control" value="{{ expense.tags or '' }}" placeholder="food, weekend">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Note</label>
+        <textarea name="note" class="form-control" rows="2" style="resize:vertical;">{{ expense.note or '' }}</textarea>
+      </div>
+
+      <div style="padding:14px;border-radius:12px;background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);margin-bottom:20px;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" name="is_recurring" id="recurringToggle"
+                 {% if expense.is_recurring %}checked{% endif %}
+                 onchange="document.getElementById('recurrenceGroup').style.display=this.checked?'block':'none'"
+                 style="accent-color:var(--neon-purple);width:16px;height:16px;">
+          <span style="font-weight:600;font-size:.9rem;">🔄 Recurring Expense</span>
+        </label>
+        <div id="recurrenceGroup" style="display:{% if expense.is_recurring %}block{% else %}none{% endif %};margin-top:12px;">
+          <select name="recurrence" class="form-control">
+            {% for r in ['daily','weekly','monthly','yearly'] %}
+            <option value="{{ r }}" {% if expense.recurrence == r %}selected{% endif %}>{{ r.title() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="d-flex gap-12">
+        <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center;padding:13px;">Save Changes</button>
+        <a href="{{ url_for('expenses.list_expenses') }}" class="btn btn-secondary">Cancel</a>
+        <form method="POST" action="{{ url_for('expenses.delete_expense', expense_id=expense.id) }}"
+              onsubmit="return confirm('Delete this expense permanently?');" style="display:inline;">
+          <button type="submit" class="btn btn-danger">🗑 Delete</button>
+        </form>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}

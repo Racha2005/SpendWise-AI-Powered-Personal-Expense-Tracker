@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register — SpendWise</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <style>
+    .floating-orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;animation:floatOrb 8s ease-in-out infinite;}
+    .orb1{width:350px;height:350px;background:rgba(168,85,247,0.12);top:-80px;right:-80px;}
+    .orb2{width:280px;height:280px;background:rgba(34,197,94,0.08);bottom:-60px;left:-60px;animation-delay:-3s;}
+    @keyframes floatOrb{0%,100%{transform:translate(0,0);}50%{transform:translate(15px,-15px);}}
+    .strength-bar{height:4px;border-radius:4px;background:rgba(255,255,255,0.08);margin-top:6px;overflow:hidden;}
+    .strength-fill{height:100%;border-radius:4px;transition:width .3s,background .3s;}
+    .password-wrap{position:relative;}
+    .password-wrap .form-control{padding-right:44px;}
+    .password-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;}
+  </style>
+</head>
+<body>
+  <div class="floating-orb orb1"></div>
+  <div class="floating-orb orb2"></div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="toast-container">
+      {% for cat, msg in messages %}
+      <div class="toast {{ cat }}">
+        <span>{% if cat=='success'%}✅{% elif cat=='danger'%}❌{% else %}⚠️{% endif %}</span>
+        <span class="toast-msg">{{ msg }}</span>
+        <span class="toast-close" onclick="this.parentElement.remove()">✕</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="auth-page">
+    <div class="auth-card" style="max-width:480px;">
+      <div class="auth-logo">
+        <div class="logo-big">💸 SpendWise</div>
+      </div>
+
+      <div class="auth-title">Create your account</div>
+      <div class="auth-sub">Start your AI-powered financial journey today</div>
+
+      <form method="POST" action="{{ url_for('auth.register') }}" id="registerForm">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" name="full_name" class="form-control" placeholder="John Doe"
+                   value="{{ form_data.get('full_name','') if form_data else '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Username <span style="color:var(--neon-red)">*</span></label>
+            <input type="text" name="username" class="form-control" placeholder="johndoe" required
+                   value="{{ form_data.get('username','') if form_data else '' }}" minlength="3">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email Address <span style="color:var(--neon-red)">*</span></label>
+          <input type="email" name="email" class="form-control" placeholder="you@example.com" required
+                 value="{{ form_data.get('email','') if form_data else '' }}">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Currency</label>
+            <select name="currency" class="form-control">
+              <option value="INR" {% if not form_data or form_data.get('currency','INR')=='INR' %}selected{% endif %}>₹ INR — Indian Rupee</option>
+              <option value="USD" {% if form_data and form_data.get('currency')=='USD' %}selected{% endif %}>$ USD — US Dollar</option>
+              <option value="EUR" {% if form_data and form_data.get('currency')=='EUR' %}selected{% endif %}>€ EUR — Euro</option>
+              <option value="GBP" {% if form_data and form_data.get('currency')=='GBP' %}selected{% endif %}>£ GBP — British Pound</option>
+              <option value="JPY" {% if form_data and form_data.get('currency')=='JPY' %}selected{% endif %}>¥ JPY — Japanese Yen</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monthly Income (optional)</label>
+            <input type="number" name="monthly_income" class="form-control" placeholder="50000" min="0"
+                   value="{{ form_data.get('monthly_income','') if form_data else '' }}">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password <span style="color:var(--neon-red)">*</span></label>
+          <div class="password-wrap">
+            <input type="password" name="password" id="pwdInput" class="form-control"
+                   placeholder="Min 8 characters" required minlength="8"
+                   oninput="checkStrength(this.value)">
+            <button type="button" class="password-eye" onclick="togglePwd('pwdInput')">👁</button>
+          </div>
+          <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+          <div id="strengthLabel" style="font-size:.72rem;color:var(--text-muted);margin-top:4px;"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Confirm Password <span style="color:var(--neon-red)">*</span></label>
+          <div class="password-wrap">
+            <input type="password" name="confirm_password" id="confirmInput" class="form-control"
+                   placeholder="••••••••" required>
+            <button type="button" class="password-eye" onclick="togglePwd('confirmInput')">👁</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full" style="justify-content:center;padding:13px;margin-top:4px;">
+          Create Account 🚀
+        </button>
+      </form>
+
+      <div class="auth-divider">already have an account</div>
+
+      <div style="text-align:center;font-size:.875rem;color:var(--text-secondary);">
+        <a href="{{ url_for('auth.login') }}" style="color:var(--neon-purple);font-weight:600;">Sign in instead →</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function togglePwd(id) {
+      const el = document.getElementById(id);
+      el.type = el.type === 'password' ? 'text' : 'password';
+    }
+    function checkStrength(val) {
+      const fill  = document.getElementById('strengthFill');
+      const label = document.getElementById('strengthLabel');
+      let score = 0;
+      if (val.length >= 8) score++;
+      if (/[A-Z]/.test(val)) score++;
+      if (/[0-9]/.test(val)) score++;
+      if (/[^A-Za-z0-9]/.test(val)) score++;
+      const levels = [
+        { w:'0%',   bg:'',                      txt:'' },
+        { w:'25%',  bg:'var(--neon-red)',        txt:'Weak' },
+        { w:'50%',  bg:'var(--neon-orange)',     txt:'Fair' },
+        { w:'75%',  bg:'var(--neon-yellow)',     txt:'Good' },
+        { w:'100%', bg:'var(--neon-green)',      txt:'Strong 💪' },
+      ];
+      const lv = levels[score];
+      fill.style.width = lv.w;
+      fill.style.background = lv.bg;
+      label.textContent = lv.txt;
+      label.style.color = lv.bg;
+    }
+    document.querySelectorAll('.toast').forEach(t => setTimeout(() => t.remove(), 4000));
+  </script>
+</body>
+</html>

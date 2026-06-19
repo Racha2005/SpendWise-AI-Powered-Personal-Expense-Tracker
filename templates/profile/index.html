@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+
+{% block content %}
+<div style="max-width:680px;margin:0 auto;">
+
+  <!-- Avatar Banner -->
+  <div class="chart-panel mb-20" style="background:linear-gradient(135deg,rgba(168,85,247,0.15),rgba(6,182,212,0.08));border-color:rgba(168,85,247,0.25);padding:28px;">
+    <div style="display:flex;align-items:center;gap:20px;">
+      <div style="width:72px;height:72px;border-radius:50%;background:var(--grad-multi);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:900;color:#fff;box-shadow:0 0 30px rgba(168,85,247,0.4);">
+        {{ current_user.display_name[0].upper() }}
+      </div>
+      <div>
+        <div style="font-size:1.4rem;font-weight:800;font-family:var(--font-display);">{{ current_user.display_name }}</div>
+        <div style="color:var(--text-secondary);font-size:.875rem;">{{ current_user.email }}</div>
+        <div style="margin-top:6px;display:flex;gap:8px;">
+          <span class="badge badge-purple">{{ current_user.currency }} User</span>
+          <span class="badge badge-green">Active</span>
+          <span class="badge badge-cyan">{{ current_user.theme.title() }} Theme</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Form -->
+  <div class="chart-panel mb-20">
+    <div style="font-size:1rem;font-weight:700;font-family:var(--font-display);margin-bottom:24px;">✏️ Edit Profile</div>
+    <form method="POST" action="{{ url_for('auth.profile') }}">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" name="full_name" class="form-control" value="{{ current_user.full_name or '' }}" placeholder="Your full name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Currency</label>
+          <select name="currency" class="form-control">
+            {% for code, sym, name in [('INR','₹','Indian Rupee'),('USD','$','US Dollar'),('EUR','€','Euro'),('GBP','£','British Pound'),('JPY','¥','Japanese Yen')] %}
+            <option value="{{ code }}" {% if current_user.currency == code %}selected{% endif %}>{{ sym }} {{ code }} — {{ name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Monthly Income ({{ current_user.currency_symbol }})</label>
+          <div style="position:relative;">
+            <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--neon-green);font-weight:700;">{{ current_user.currency_symbol }}</span>
+            <input type="number" name="monthly_income" class="form-control" style="padding-left:32px;"
+                   value="{{ current_user.monthly_income or '' }}" placeholder="0" min="0" step="0.01">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">UI Theme</label>
+          <select name="theme" class="form-control">
+            <option value="dark"  {% if current_user.theme == 'dark'  %}selected{% endif %}>🌙 Dark</option>
+            <option value="light" {% if current_user.theme == 'light' %}selected{% endif %}>☀️ Light</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="justify-content:center;padding:12px 28px;">
+        💾 Save Profile
+      </button>
+    </form>
+  </div>
+
+  <!-- Change Password -->
+  <div class="chart-panel">
+    <div style="font-size:1rem;font-weight:700;font-family:var(--font-display);margin-bottom:24px;">🔐 Change Password</div>
+    <form method="POST" action="{{ url_for('auth.profile') }}">
+      <input type="hidden" name="_change_password" value="1">
+
+      <div class="form-group">
+        <label class="form-label">Current Password</label>
+        <input type="password" name="current_password" class="form-control" placeholder="••••••••">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">New Password</label>
+          <input type="password" name="new_password" class="form-control" placeholder="Min 8 characters" minlength="8">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm New Password</label>
+          <input type="password" name="confirm_new_password" class="form-control" placeholder="••••••••">
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-secondary" style="justify-content:center;padding:12px 28px;">
+        🔒 Update Password
+      </button>
+    </form>
+  </div>
+
+  <!-- Account Stats -->
+  <div class="kpi-grid" style="margin-top:20px;grid-template-columns:repeat(3,1fr);">
+    <div class="kpi-card blue">
+      <span class="kpi-icon">📅</span>
+      <div class="kpi-label">Member Since</div>
+      <div class="kpi-value" style="font-size:1.2rem;">{{ current_user.created_at.strftime('%b %Y') }}</div>
+    </div>
+    <div class="kpi-card purple">
+      <span class="kpi-icon">🕐</span>
+      <div class="kpi-label">Last Login</div>
+      <div class="kpi-value" style="font-size:1rem;">{{ current_user.last_login.strftime('%d %b %Y') if current_user.last_login else 'Now' }}</div>
+    </div>
+    <div class="kpi-card cyan">
+      <span class="kpi-icon">💱</span>
+      <div class="kpi-label">Currency</div>
+      <div class="kpi-value" style="font-size:1.4rem;">{{ current_user.currency_symbol }} {{ current_user.currency }}</div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

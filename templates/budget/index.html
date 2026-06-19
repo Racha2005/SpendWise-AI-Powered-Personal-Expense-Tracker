@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}Budgets{% endblock %}
+{% block page_title %}Budget Management{% endblock %}
+
+{% block content %}
+
+<!-- Month Selector -->
+<div class="chart-panel mb-20" style="padding:16px 24px;">
+  <form method="GET" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <label class="form-label" style="margin:0;">Viewing:</label>
+    <select name="month" class="form-control" style="width:auto;" onchange="this.form.submit()">
+      {% for m in range(1,13) %}
+      {% set mo = '%02d'|format(m) %}
+      <option value="{{ mo }}" {% if m == selected_month %}selected{% endif %}>
+        {{ ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m] }}
+      </option>
+      {% endfor %}
+    </select>
+    <select name="year" class="form-control" style="width:auto;" onchange="this.form.submit()">
+      {% for y in range(today.year - 2, today.year + 2) %}
+      <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+      {% endfor %}
+    </select>
+    <a href="{{ url_for('budget.index') }}" class="btn btn-secondary btn-sm">This Month</a>
+  </form>
+</div>
+
+<!-- KPI Row -->
+<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px;">
+  {% set total_budget = budget_overview | sum(attribute='budget') %}
+  {% set total_spent  = budget_overview | sum(attribute='spent') %}
+  {% set on_track = budget_overview | selectattr('status','equalto','success') | list | length %}
+
+  <div class="kpi-card purple">
+    <span class="kpi-icon">🎯</span>
+    <div class="kpi-label">Total Budget</div>
+    <div class="kpi-value">{{ current_user.currency_symbol }}{{ "{:,.0f}".format(total_budget) }}</div>
+  </div>
+  <div class="kpi-card {% if total_spent > total_budget %}pink{% else %}cyan{% endif %}">
+    <span class="kpi-icon">💸</span>
+    <div class="kpi-label">Total Spent</div>
+    <div class="kpi-value">{{ current_user.currency_symbol }}{{ "{:,.0f}".format(total_spent) }}</div>
+    <div class="kpi-change {% if total_spent > total_budget %}up{% else %}down{% endif %}">
+      {% if total_spent > total_budget %}⚠️ Over budget{% else %}✅ Under budget{% endif %}
+    </div>
+  </div>
+  <div class="kpi-card green">
+    <span class="kpi-icon">✅</span>
+    <div class="kpi-label">On Track</div>
+    <div class="kpi-value">{{ on_track }}/{{ budget_overview|length }}</div>
+    <div class="kpi-change" style="color:var(--text-muted);">categories</div>
+  </div>
+</div>
+
+<div class="chart-grid" style="grid-template-columns:1fr 1fr;align-items:start;">
+
+  <!-- Budget Overview Cards -->
+  <div>
+    <div class="section-header mb-16">
+      <div class="section-title">📊 Budget vs Actual</div>
+    </div>
+
+    {% if budget_overview %}
+      {% for b in budget_overview %}
+      <div class="chart-panel mb-12" style="padding:18px 20px;">
+        <div class="d-flex justify-between align-center mb-12">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.4rem;">{{ b.icon }}</span>
+            <div>
+              <div style="font-weight:700;font-size:.9rem;">{{ b.category }}</div>
+              <div style="font-size:.72rem;color:var(--text-muted);">Alert at {{ b.alert_pct }}%</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:1.1rem;font-weight:800;font-family:var(--font-display);color:{% if b.status=='danger' %}var(--neon-red){% elif b.status=='warning' %}var(--neon-orange){% else %}var(--neon-green){% endif %};">
+              {{ b.percent }}%
+            </div>
+            <div style="font-size:.72rem;color:var(--text-muted);">used</div>
+          </div>
+        </div>
+
+        <div class="progress-bar-wrap mb-8">
+          <div class="progress-bar-fill {% if b.status=='danger' %}red{% elif b.status=='warning' %}orange{% else %}green{% endif %}"
+               style="width:{{ [b.percent,100]|min }}%;"></div>
+        </div>
+
+        <div class="d-flex justify-between" style="font-size:.78rem;">
+          <span style="color:var(--text-muted);">
+            Spent: <strong style="color:var(--text-primary);">{{ current_user.currency_symbol }}{{ "{:,.0f}".format(b.spent) }}</strong>
+          </span>
+          <span style="color:var(--text-muted);">
+            Budget: <strong style="color:var(--text-primary);">{{ current_user.currency_symbol }}{{ "{:,.0f}".format(b.budget) }}</strong>
+          </span>
+          <span style="color:{% if b.remaining >= 0 %}var(--neon-green){% else %}var(--neon-red){% endif %};font-weight:700;">
+            {{ current_user.currency_symbol }}{{ "{:,.0f}".format(b.remaining|abs) }}
+            {% if b.remaining >= 0 %}left{% else %}over{% endif %}
+          </span>
+        </div>
+
+        <div style="margin-top:10px;text-align:right;">
+          <form method="POST" action="{{ url_for('budget.delete_budget', budget_id=b.budget_id) }}"
+                onsubmit="return confirm('Remove this budget?');" style="display:inline;">
+            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="chart-panel" style="text-align:center;padding:48px;">
+        <div style="font-size:3rem;margin-bottom:12px;">🎯</div>
+        <div style="font-weight:600;margin-bottom:6px;">No budgets set</div>
+        <div style="font-size:.85rem;color:var(--text-muted);">Use the form to set your first budget</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Set Budget Form -->
+  <div>
+    <div class="section-header mb-16">
+      <div class="section-title">➕ Set New Budget</div>
+    </div>
+
+    <div class="chart-panel">
+      <form method="POST" action="{{ url_for('budget.set_budget') }}">
+
+        <div class="form-group">
+          <label class="form-label">Budget Month</label>
+          <input type="month" name="budget_month" class="form-control"
+                 value="{{ selected_year }}-{{ '%02d'|format(selected_month) }}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Category <span style="color:var(--text-muted);font-weight:400;">(leave blank for overall)</span></label>
+          <select name="category_id" class="form-control">
+            <option value="">📊 Overall Monthly Budget</option>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}">{{ cat.icon }} {{ cat.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Budget Amount ({{ current_user.currency_symbol }})</label>
+          <div style="position:relative;">
+            <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--neon-purple);font-weight:700;">{{ current_user.currency_symbol }}</span>
+            <input type="number" name="amount" class="form-control" style="padding-left:32px;"
+                   placeholder="5000" min="1" step="0.01" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Alert Threshold: <span id="alertVal">80</span>%</label>
+          <input type="range" name="alert_percent" min="50" max="100" value="80"
+                 oninput="document.getElementById('alertVal').textContent=this.value"
+                 style="width:100%;accent-color:var(--neon-purple);">
+          <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-muted);margin-top:4px;">
+            <span>50%</span><span>75%</span><span>100%</span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full" style="justify-content:center;padding:13px;">
+          🎯 Set Budget
+        </button>
+      </form>
+    </div>
+
+    <!-- Budget Chart -->
+    {% if budget_overview %}
+    <div class="chart-panel" style="margin-top:16px;">
+      <div class="chart-panel-header">
+        <div class="chart-panel-title">Budget Utilization</div>
+      </div>
+      <div class="chart-container">
+        <canvas id="budgetChart"></canvas>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{% if budget_overview %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const labels  = {{ budget_overview | map(attribute='category') | list | tojson }};
+const budgets = {{ budget_overview | map(attribute='budget')   | list | tojson }};
+const spents  = {{ budget_overview | map(attribute='spent')    | list | tojson }};
+
+new Chart(document.getElementById('budgetChart'), {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [
+      { label: 'Budget', data: budgets, backgroundColor: 'rgba(168,85,247,0.3)', borderColor: '#a855f7', borderWidth: 2, borderRadius: 6 },
+      { label: 'Spent',  data: spents,  backgroundColor: 'rgba(6,182,212,0.3)',  borderColor: '#06b6d4', borderWidth: 2, borderRadius: 6 },
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: '#8b8ba7', font: { size: 11 } } } },
+    scales: {
+      x: { ticks: { color: '#55556a', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: { ticks: { color: '#55556a' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+    }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

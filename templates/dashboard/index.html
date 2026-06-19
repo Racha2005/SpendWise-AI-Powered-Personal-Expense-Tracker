@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- KPI Cards -->
+<div class="kpi-grid">
+
+  <div class="kpi-card purple">
+    <span class="kpi-icon">💸</span>
+    <div class="kpi-label">Total Spent This Month</div>
+    <div class="kpi-value">{{ current_user.currency_symbol }}{{ "{:,.0f}".format(kpis.total_spent) }}</div>
+    <div class="kpi-change {% if kpis.change_pct > 0 %}up{% else %}down{% endif %}">
+      {% if kpis.change_pct > 0 %}▲{% else %}▼{% endif %}
+      {{ kpis.change_pct|abs }}% vs last month
+    </div>
+  </div>
+
+  <div class="kpi-card blue">
+    <span class="kpi-icon">📝</span>
+    <div class="kpi-label">Transactions</div>
+    <div class="kpi-value">{{ kpis.transaction_count }}</div>
+    <div class="kpi-change" style="color:var(--text-muted);">
+      This month
+    </div>
+  </div>
+
+  <div class="kpi-card cyan">
+    <span class="kpi-icon">📊</span>
+    <div class="kpi-label">Avg per Transaction</div>
+    <div class="kpi-value">{{ current_user.currency_symbol }}{{ "{:,.0f}".format(kpis.avg_transaction) }}</div>
+    <div class="kpi-change" style="color:var(--text-muted);">
+      Top: {{ kpis.top_category }}
+    </div>
+  </div>
+
+  <div class="kpi-card green">
+    <span class="kpi-icon">🏦</span>
+    <div class="kpi-label">Monthly Income</div>
+    <div class="kpi-value">{{ current_user.currency_symbol }}{{ "{:,.0f}".format(current_user.monthly_income or 0) }}</div>
+    {% set savings = (current_user.monthly_income|float or 0) - (kpis.total_spent|float) %}
+    <div class="kpi-change {% if savings >= 0 %}down{% else %}up{% endif %}">
+      {% if savings >= 0 %}✅{% else %}❌{% endif %}
+      {{ current_user.currency_symbol }}{{ "{:,.0f}".format(savings|abs) }} {% if savings >= 0 %}saved{% else %}over budget{% endif %}
+    </div>
+  </div>
+
+  <div class="kpi-card pink">
+    <span class="kpi-icon">🎯</span>
+    <div class="kpi-label">Financial Health</div>
+    <div class="kpi-value" style="color:{{ health.color }};">{{ health.score }}</div>
+    <div class="kpi-change" style="color:{{ health.color }};">{{ health.grade }}</div>
+  </div>
+
+  <div class="kpi-card orange">
+    <span class="kpi-icon">⚠️</span>
+    <div class="kpi-label">Anomalies Detected</div>
+    <div class="kpi-value">{{ anomaly_count }}</div>
+    <div class="kpi-change" style="color:var(--text-muted);">Unusual expenses this month</div>
+  </div>
+
+</div>
+
+<!-- Charts Row 1 -->
+<div class="chart-grid" style="grid-template-columns:2fr 1fr;">
+
+  <div class="chart-panel">
+    <div class="chart-panel-header">
+      <div>
+        <div class="chart-panel-title">Monthly Spending Trend</div>
+        <div class="chart-panel-sub">Full year overview</div>
+      </div>
+      <div class="d-flex gap-8">
+        <span class="badge badge-purple">{{ today.year }}</span>
+      </div>
+    </div>
+    <div class="chart-container">
+      <canvas id="monthlyTrendChart"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-panel">
+    <div class="chart-panel-header">
+      <div>
+        <div class="chart-panel-title">Category Split</div>
+        <div class="chart-panel-sub">This month</div>
+      </div>
+    </div>
+    <div class="chart-container" style="display:flex;justify-content:center;">
+      <canvas id="categoryDonutChart" style="max-height:240px;max-width:240px;"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- Charts Row 2 -->
+<div class="chart-grid">
+
+  <div class="chart-panel">
+    <div class="chart-panel-header">
+      <div>
+        <div class="chart-panel-title">Weekly Spending Pattern</div>
+        <div class="chart-panel-sub">Average spend by day of week</div>
+      </div>
+    </div>
+    <div class="chart-container">
+      <canvas id="weeklyBarChart"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-panel">
+    <div class="chart-panel-header">
+      <div>
+        <div class="chart-panel-title">AI Expense Forecast</div>
+        <div class="chart-panel-sub">Next 3 months prediction</div>
+      </div>
+      <span class="badge badge-cyan">🤖 ML</span>
+    </div>
+    <div class="chart-container">
+      <canvas id="forecastChart"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- Bottom Row -->
+<div class="chart-grid">
+
+  <!-- Recent Expenses -->
+  <div class="chart-panel" style="padding:0;overflow:hidden;">
+    <div class="chart-panel-header" style="padding:20px 24px 0;">
+      <div>
+        <div class="chart-panel-title">Recent Expenses</div>
+        <div class="chart-panel-sub">Last 10 transactions</div>
+      </div>
+      <a href="{{ url_for('expenses.list_expenses') }}" class="btn btn-secondary btn-sm">View All</a>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="sw-table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Category</th>
+            <th>Date</th>
+            <th style="text-align:right;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for exp in recent_expenses %}
+          <tr>
+            <td>
+              <div style="font-weight:600;font-size:.85rem;">{{ exp.description or 'No description' }}</div>
+              {% if exp.is_anomaly %}
+              <span class="anomaly-flag">⚠️ Anomaly</span>
+              {% endif %}
+            </td>
+            <td>
+              <span style="display:inline-flex;align-items:center;gap:6px;">
+                <span>{{ exp.category.icon }}</span>
+                <span style="font-size:.82rem;color:var(--text-secondary);">{{ exp.category.name }}</span>
+              </span>
+            </td>
+            <td style="color:var(--text-muted);font-size:.82rem;">{{ exp.expense_date.strftime('%d %b') }}</td>
+            <td style="text-align:right;font-weight:700;color:var(--neon-purple);">
+              {{ current_user.currency_symbol }}{{ "{:,.0f}".format(exp.amount) }}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" style="text-align:center;color:var(--text-muted);padding:32px;">
+              No expenses yet — <a href="{{ url_for('expenses.add_expense') }}">add your first one</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Budget Overview -->
+  <div class="chart-panel">
+    <div class="chart-panel-header">
+      <div>
+        <div class="chart-panel-title">Budget Overview</div>
+        <div class="chart-panel-sub">{{ today.strftime('%B %Y') }}</div>
+      </div>
+      <a href="{{ url_for('budget.index') }}" class="btn btn-secondary btn-sm">Manage</a>
+    </div>
+
+    {% if budget_overview %}
+      {% for b in budget_overview %}
+      <div style="margin-bottom:16px;">
+        <div class="d-flex justify-between align-center mb-8">
+          <span style="font-size:.85rem;font-weight:600;">{{ b.icon }} {{ b.category }}</span>
+          <span style="font-size:.78rem;color:var(--text-muted);">
+            {{ current_user.currency_symbol }}{{ "{:,.0f}".format(b.spent) }} /
+            {{ current_user.currency_symbol }}{{ "{:,.0f}".format(b.budget) }}
+          </span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill {% if b.status == 'danger' %}red{% elif b.status == 'warning' %}orange{% else %}green{% endif %}"
+               style="width:{{ [b.percent, 100]|min }}%;"></div>
+        </div>
+        <div style="font-size:.72rem;margin-top:4px;color:{% if b.status=='danger' %}var(--neon-red){% elif b.status=='warning' %}var(--neon-orange){% else %}var(--neon-green){% endif %};">
+          {{ b.percent }}% used
+          {% if b.status == 'danger' %}— Over budget!{% elif b.status == 'warning' %}— Approaching limit{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div style="text-align:center;color:var(--text-muted);padding:32px 0;">
+        <div style="font-size:2rem;margin-bottom:8px;">🎯</div>
+        No budgets set for this month.<br>
+        <a href="{{ url_for('budget.index') }}" style="color:var(--neon-purple);">Set your budgets →</a>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- AI Health Score Details -->
+<div class="chart-panel mb-20">
+  <div class="chart-panel-header">
+    <div>
+      <div class="chart-panel-title">🤖 AI Financial Health Breakdown</div>
+      <div class="chart-panel-sub">Score: {{ health.score }}/100 — {{ health.grade }}</div>
+    </div>
+    <span class="badge badge-{% if health.grade == 'Excellent' %}green{% elif health.grade == 'Good' %}cyan{% elif health.grade == 'Fair' %}orange{% else %}red{% endif %}">
+      {{ health.grade }}
+    </span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;">
+    {% set score_items = [
+      ('savings_rate',     'Savings Rate',      '💰', 'purple'),
+      ('budget_adherence', 'Budget Adherence',  '🎯', 'blue'),
+      ('spending_stability','Stability',         '📈', 'cyan'),
+      ('expense_diversity','Diversity',          '🌈', 'green'),
+      ('anomaly_ratio',    'Anomaly Score',      '🔍', 'orange'),
+    ] %}
+    {% for key, label, icon, color in score_items %}
+    <div style="padding:14px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid var(--border);">
+      <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px;">{{ icon }} {{ label }}</div>
+      <div style="font-size:1.4rem;font-weight:800;color:var(--neon-{{ color }});font-family:var(--font-display);">
+        {{ health.scores[key] }}<span style="font-size:.8rem;font-weight:400;">/100</span>
+      </div>
+      <div class="progress-bar-wrap" style="margin-top:8px;">
+        <div class="progress-bar-fill {{ color }}" style="width:{{ health.scores[key] }}%;"></div>
+      </div>
+      <div style="font-size:.7rem;color:var(--text-muted);margin-top:5px;">{{ health.details[key] }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  // Fetch all chart data
+  const [trendRes, catRes, weekRes, forecastRes] = await Promise.all([
+    fetch('/api/v1/chart/monthly-trend').then(r => r.json()),
+    fetch('/api/v1/chart/category-split').then(r => r.json()),
+    fetch('/api/v1/chart/weekly-pattern').then(r => r.json()),
+    fetch('/api/v1/chart/forecast').then(r => r.json()),
+  ]);
+
+  // Monthly trend — area line chart
+  initAreaChart('monthlyTrendChart', trendRes.labels.map(l => {
+    const [y,m] = l.split('-');
+    return new Date(y, m-1).toLocaleString('default',{month:'short'});
+  }), trendRes.data, 'Monthly Spend', '#a855f7');
+
+  // Category donut
+  initDonutChart('categoryDonutChart', catRes.labels, catRes.data, catRes.colors);
+
+  // Weekly bar
+  initBarChart('weeklyBarChart', weekRes.labels.map(d => d.slice(0,3)), weekRes.data, 'Avg Spend');
+
+  // Forecast
+  const histLabels = forecastRes.historical_labels.slice(-6).map(l => {
+    const [y,m] = l.split('-');
+    return new Date(y, m-1).toLocaleString('default',{month:'short'});
+  });
+  const futureLabels = forecastRes.months.map(m => m.label);
+  const histData   = forecastRes.historical_data.slice(-6);
+  const futureData = forecastRes.months.map(m => m.predicted);
+
+  initForecastChart('forecastChart',
+    [...histLabels, ...futureLabels],
+    histData,
+    futureData,
+    histLabels.length
+  );
+});
+</script>
+{% endblock %}

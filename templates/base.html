@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}SpendWise{% endblock %} — AI Expense Tracker</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="toast-container" id="toastContainer">
+    {% for category, message in messages %}
+    <div class="toast {{ category }}" role="alert">
+      <span>
+        {% if category == 'success' %}✅{% elif category == 'danger' %}❌{% elif category == 'warning' %}⚠️{% else %}ℹ️{% endif %}
+      </span>
+      <span class="toast-msg">{{ message }}</span>
+      <span class="toast-close" onclick="this.parentElement.remove()">✕</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+<div class="app-shell">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-text">💸 SpendWise</div>
+      <div class="logo-sub">AI Financial Tracker</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+
+      <a href="{{ url_for('dashboard.index') }}"
+         class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+        <span class="nav-icon">🏠</span> Dashboard
+      </a>
+
+      <a href="{{ url_for('expenses.list_expenses') }}"
+         class="nav-link {% if 'expenses' in request.endpoint %}active{% endif %}">
+        <span class="nav-icon">💳</span> Expenses
+      </a>
+
+      <a href="{{ url_for('budget.index') }}"
+         class="nav-link {% if request.endpoint == 'budget.index' %}active{% endif %}">
+        <span class="nav-icon">🎯</span> Budgets
+      </a>
+
+      <div class="nav-section-label" style="margin-top:8px;">Insights</div>
+
+      <a href="{{ url_for('analytics.index') }}"
+         class="nav-link {% if request.endpoint == 'analytics.index' %}active{% endif %}">
+        <span class="nav-icon">📊</span> Analytics
+      </a>
+
+      <a href="{{ url_for('analytics.index') }}#forecast"
+         class="nav-link">
+        <span class="nav-icon">🤖</span> AI Forecast
+      </a>
+
+      <div class="nav-section-label" style="margin-top:8px;">Account</div>
+
+      <a href="{{ url_for('auth.profile') }}"
+         class="nav-link {% if request.endpoint == 'auth.profile' %}active{% endif %}">
+        <span class="nav-icon">👤</span> Profile
+      </a>
+
+      <a href="{{ url_for('auth.logout') }}" class="nav-link">
+        <span class="nav-icon">🚪</span> Logout
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-pill">
+        <div class="user-avatar">{{ current_user.display_name[0].upper() }}</div>
+        <div class="user-info">
+          <div class="user-name">{{ current_user.display_name }}</div>
+          <div class="user-role">{{ current_user.currency_symbol }} {{ current_user.currency }}</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Backdrop for mobile -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+
+  <!-- Main content -->
+  <main class="main-content">
+    <header class="topbar">
+      <div class="d-flex align-center gap-12">
+        <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+        <div>
+          <div class="topbar-title">{% block page_title %}Dashboard{% endblock %}</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <a href="{{ url_for('expenses.add_expense') }}" class="btn btn-primary btn-sm">
+          ＋ Add Expense
+        </a>
+      </div>
+    </header>
+
+    <div class="page-content">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+
+<script>
+// Sidebar toggle
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarBackdrop').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarBackdrop').classList.remove('show');
+}
+
+// Auto-dismiss toasts
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.toast').forEach(t => {
+    setTimeout(() => t.style.opacity = '0', 4000);
+    setTimeout(() => t.remove(), 4400);
+  });
+});
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

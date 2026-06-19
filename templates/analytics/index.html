@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock %}
+{% block page_title %}Analytics & AI Insights{% endblock %}
+
+{% block content %}
+
+<!-- Year Selector -->
+<div class="d-flex align-center gap-12 mb-24">
+  {% for y in range(today.year - 2, today.year + 1) %}
+  <a href="{{ url_for('analytics.index', year=y) }}"
+     class="btn {% if y == selected_year %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">{{ y }}</a>
+  {% endfor %}
+  <span style="color:var(--text-muted);font-size:.82rem;margin-left:8px;">Showing data for {{ selected_year }}</span>
+</div>
+
+<!-- AI Health Score Banner -->
+<div class="chart-panel mb-20" style="background:linear-gradient(135deg,rgba(168,85,247,0.12),rgba(6,182,212,0.08));border-color:rgba(168,85,247,0.25);">
+  <div style="display:flex;align-items:center;gap:28px;flex-wrap:wrap;">
+
+    <!-- Score Ring -->
+    <div style="flex-shrink:0;text-align:center;">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+        <circle cx="60" cy="60" r="50" fill="none"
+                stroke="{{ health.color }}"
+                stroke-width="10"
+                stroke-linecap="round"
+                stroke-dasharray="{{ (health.score / 100 * 314.16)|round(1) }} 314.16"
+                transform="rotate(-90 60 60)"
+                style="filter:drop-shadow(0 0 8px {{ health.color }});transition:stroke-dasharray .6s ease;"/>
+        <text x="60" y="56" text-anchor="middle" fill="{{ health.color }}" font-size="22" font-weight="800" font-family="Space Grotesk">{{ health.score }}</text>
+        <text x="60" y="72" text-anchor="middle" fill="#8b8ba7" font-size="10">/ 100</text>
+      </svg>
+      <div style="font-size:.85rem;font-weight:700;color:{{ health.color }};margin-top:4px;">{{ health.grade }}</div>
+    </div>
+
+    <div style="flex:1;min-width:200px;">
+      <div style="font-size:1.2rem;font-weight:800;font-family:var(--font-display);margin-bottom:6px;">🤖 Financial Health Score</div>
+      <div style="font-size:.85rem;color:var(--text-secondary);margin-bottom:16px;">Powered by AI — updates with each expense</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
+        {% for key, label in [('savings_rate','Savings Rate'),('budget_adherence','Budget'),('spending_stability','Stability'),('expense_diversity','Diversity'),('anomaly_ratio','Anomaly')] %}
+        <div style="background:rgba(0,0,0,0.2);border-radius:10px;padding:10px;">
+          <div style="font-size:.7rem;color:var(--text-muted);">{{ label }}</div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--text-primary);font-family:var(--font-display);">{{ health.scores[key] }}</div>
+          <div class="progress-bar-wrap" style="margin-top:6px;">
+            <div class="progress-bar-fill purple" style="width:{{ health.scores[key] }}%;"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="chart-grid mb-20" style="grid-template-columns:3fr 2fr;">
+  <div class="chart-panel">
+    <div class="chart-panel-header">
+      <div><div class="chart-panel-title">Monthly Spending Trend</div><div class="chart-panel-sub">Area chart — {{ selected_year }}</div></div>
+    </div>
+    <div class="chart-container"><canvas id="areaChart"></canvas></div>
+  </div>
+  <div class="chart-panel">
+    <div class="chart-panel-header">
+      <div><div class="chart-panel-title">Category Distribution</div><div class="chart-panel-sub">Donut chart — {{ selected_year }}</div></div>
+    </div>
+    <div class="chart-container" style="display:flex;justify-content:center;">
+      <canvas id="donutChart" style="max-height:260px;max-width:260px;"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="chart-grid mb-20">
+  <div class="chart-panel">
+    <div class="chart-panel-header">
+      <div><div class="chart-panel-title">Year-over-Year Comparison</div><div class="chart-panel-sub">{{ selected_year }} vs {{ selected_year - 1 }}</div></div>
+    </div>
+    <div class="chart-container"><canvas id="yoyChart"></canvas></div>
+  </div>
+  <div class="chart-panel">
+    <div class="chart-panel-header">
+      <div><div class="chart-panel-title">Weekly Spending Pattern</div><div class="chart-panel-sub">Avg spend per day of week</div></div>
+    </div>
+    <div class="chart-container"><canvas id="weeklyChart"></canvas></div>
+  </div>
+</div>
+
+<!-- Charts Row 3 -->
+<div class="chart-grid mb-20">
+  <div class="chart-panel">
+    <div class="chart-panel-header">
+      <div><div class="chart-panel-title">Payment Method Split</div><div class="chart-panel-sub">How you pay</div></div>
+    </div>
+    <div class="chart-container"><canvas id="paymentChart"></canvas></div>
+  </div>
+  <div class="chart-panel">
+    <div class="chart-panel-header">
+      <div><div class="chart-panel-title">Top 10 Biggest Expenses</div><div class="chart-panel-sub">{{ selected_year }}</div></div>
+    </div>
+    <div style="overflow-y:auto;max-height:260px;">
+      <table class="sw-table">
+        <thead><tr><th>#</th><th>Category</th><th>Date</th><th style="text-align:right;">Amount</th></tr></thead>
+        <tbody>
+          {% for i, exp in top_expenses | enumerate %}
+          <tr>
+            <td style="color:var(--text-muted);font-size:.8rem;">{{ i+1 }}</td>
+            <td style="font-size:.82rem;">{{ exp.category_name }}</td>
+            <td style="font-size:.78rem;color:var(--text-muted);">{{ exp.expense_date.strftime('%d %b') if exp.expense_date else '' }}</td>
+            <td style="text-align:right;font-weight:700;color:var(--neon-purple);font-size:.9rem;">{{ current_user.currency_symbol }}{{ "{:,.0f}".format(exp.amount) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:24px;">No data</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- AI Forecast Section -->
+<div id="forecast" class="chart-panel mb-20" style="border-color:rgba(6,182,212,0.3);background:linear-gradient(135deg,rgba(6,182,212,0.06),rgba(168,85,247,0.04));">
+  <div class="chart-panel-header mb-20">
+    <div>
+      <div class="chart-panel-title">🔮 AI Expense Forecast</div>
+      <div class="chart-panel-sub">
+        Linear Regression model — R² score: {{ "%.3f"|format(forecast.r2_score|default(0)) }} |
+        Trend:
+        <span style="color:{% if forecast.trend=='increasing' %}var(--neon-red){% elif forecast.trend=='decreasing' %}var(--neon-green){% else %}var(--neon-cyan){% endif %};font-weight:700;">
+          {% if forecast.trend=='increasing' %}📈 Increasing{% elif forecast.trend=='decreasing' %}📉 Decreasing{% else %}➡️ Stable{% endif %}
+        </span>
+      </div>
+    </div>
+    <span class="badge badge-cyan">🤖 ML Model</span>
+  </div>
+
+  <!-- Forecast Cards -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;">
+    {% for m in forecast.months %}
+    <div class="forecast-month-card">
+      <div class="forecast-label">{{ m.label }}</div>
+      <div class="forecast-value">{{ current_user.currency_symbol }}{{ "{:,.0f}".format(m.predicted) }}</div>
+      <div class="forecast-conf">Confidence: {{ (m.confidence * 100)|round|int }}%</div>
+    </div>
+    {% else %}
+    <div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:20px;">
+      Add more expenses to generate forecasts
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Forecast Chart -->
+  <div class="chart-container">
+    <canvas id="forecastLineChart"></canvas>
+  </div>
+</div>
+
+<!-- AI Recommendations -->
+<div class="chart-panel mb-20">
+  <div class="chart-panel-header mb-16">
+    <div>
+      <div class="chart-panel-title">💡 AI Financial Recommendations</div>
+      <div class="chart-panel-sub">Personalized insights based on your spending</div>
+    </div>
+  </div>
+  {% for tip in tips %}
+  <div class="tip-card {{ tip.type }}">
+    <span class="tip-icon">{{ tip.icon }}</span>
+    <div>
+      <div class="tip-title">{{ tip.title }}</div>
+      <div class="tip-msg">{{ tip.message }}</div>
+      {% if tip.actual_pct is defined %}
+      <div style="margin-top:6px;font-size:.72rem;color:var(--text-muted);">
+        Your spend: {{ tip.actual_pct }}% | Benchmark: {{ tip.benchmark_pct }}%
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="tip-card info">
+    <span class="tip-icon">🤖</span>
+    <div>
+      <div class="tip-title">Getting Started</div>
+      <div class="tip-msg">Add expenses and set your monthly income to receive personalized AI recommendations.</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+// Inject server data
+const analyticsData = {
+  monthly:  {{ monthly_trend  | tojson }},
+  category: {{ category_split | tojson }},
+  weekly:   {{ weekly_pattern | tojson }},
+  yoy:      {{ yoy_comparison | tojson }},
+  payment:  {{ payment_methods| tojson }},
+  forecast: {{ forecast       | tojson }},
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  const d = analyticsData;
+
+  // Area chart
+  initAreaChart('areaChart',
+    d.monthly.labels.map(l => { const [y,m]=l.split('-'); return new Date(y,m-1).toLocaleString('default',{month:'short'}); }),
+    d.monthly.data, 'Monthly Spend', '#a855f7');
+
+  // Donut
+  initDonutChart('donutChart', d.category.labels, d.category.data, d.category.colors);
+
+  // YoY comparison
+  initYoYChart('yoyChart', d.yoy.labels, d.yoy.current, d.yoy.previous);
+
+  // Weekly
+  initBarChart('weeklyChart', d.weekly.labels.map(l => l.slice(0,3)), d.weekly.data, 'Avg Spend');
+
+  // Payment pie
+  initPieChart('paymentChart', d.payment.labels, d.payment.data);
+
+  // Forecast line
+  const histLabels  = d.forecast.historical_labels.slice(-8).map(l => { const [y,m]=l.split('-'); return new Date(y,m-1).toLocaleString('default',{month:'short'}); });
+  const futureLabels= d.forecast.months.map(m => m.label);
+  const histData    = d.forecast.historical_data.slice(-8);
+  const futureData  = d.forecast.months.map(m => m.predicted);
+
+  initForecastChart('forecastLineChart',
+    [...histLabels, ...futureLabels],
+    histData, futureData, histLabels.length);
+});
+</script>
+{% endblock %}

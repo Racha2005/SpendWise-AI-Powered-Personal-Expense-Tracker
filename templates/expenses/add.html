@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Add Expense{% endblock %}
+{% block page_title %}Add Expense{% endblock %}
+
+{% block content %}
+<div style="max-width:680px;margin:0 auto;">
+
+  <div class="chart-panel">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:28px;">
+      <div style="width:48px;height:48px;border-radius:14px;background:var(--grad-purple);display:flex;align-items:center;justify-content:center;font-size:1.4rem;box-shadow:var(--shadow-purple);">💳</div>
+      <div>
+        <h2 style="font-size:1.25rem;margin-bottom:2px;">Add New Expense</h2>
+        <div style="font-size:.82rem;color:var(--text-muted);">Track your spending — AI will check for anomalies</div>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('expenses.add_expense') }}">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Amount <span style="color:var(--neon-red);">*</span></label>
+          <div style="position:relative;">
+            <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--neon-purple);font-weight:700;font-size:1rem;">{{ current_user.currency_symbol }}</span>
+            <input type="number" name="amount" class="form-control" style="padding-left:32px;"
+                   placeholder="0.00" step="0.01" min="0.01" required
+                   value="{{ form_data.get('amount','') if form_data else '' }}">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Date <span style="color:var(--neon-red);">*</span></label>
+          <input type="date" name="expense_date" class="form-control" required
+                 value="{{ form_data.get('expense_date', today) if form_data else today }}">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Category <span style="color:var(--neon-red);">*</span></label>
+          <select name="category_id" class="form-control" required>
+            <option value="">Select category…</option>
+            {% set defaults = [] %}
+            {% set custom   = [] %}
+            {% for cat in categories %}
+              {% if cat.is_default %}{% set _ = defaults.append(cat) %}{% else %}{% set _ = custom.append(cat) %}{% endif %}
+            {% endfor %}
+            {% if defaults %}
+            <optgroup label="── Default Categories ──">
+              {% for cat in defaults %}
+              <option value="{{ cat.id }}" {% if form_data and form_data.get('category_id')|int == cat.id %}selected{% endif %}>
+                {{ cat.icon }} {{ cat.name }}
+              </option>
+              {% endfor %}
+            </optgroup>
+            {% endif %}
+            {% if custom %}
+            <optgroup label="── My Categories ──">
+              {% for cat in custom %}
+              <option value="{{ cat.id }}" {% if form_data and form_data.get('category_id')|int == cat.id %}selected{% endif %}>
+                {{ cat.icon }} {{ cat.name }}
+              </option>
+              {% endfor %}
+            </optgroup>
+            {% endif %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Payment Method</label>
+          <select name="payment_method" class="form-control">
+            {% for m in ['cash','card','upi','netbanking','wallet','other'] %}
+            <option value="{{ m }}" {% if form_data and form_data.get('payment_method') == m %}selected{% endif %}>
+              {% if m == 'cash' %}💵{% elif m == 'card' %}💳{% elif m == 'upi' %}📲{% elif m == 'netbanking' %}🏦{% elif m == 'wallet' %}👛{% else %}📦{% endif %}
+              {{ m.title() }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <input type="text" name="description" class="form-control"
+               placeholder="What did you spend on?"
+               value="{{ form_data.get('description','') if form_data else '' }}">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Tags <span style="color:var(--text-muted);font-weight:400;">(comma separated)</span></label>
+        <input type="text" name="tags" class="form-control"
+               placeholder="food, weekend, treat"
+               value="{{ form_data.get('tags','') if form_data else '' }}">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Note</label>
+        <textarea name="note" class="form-control" rows="2" placeholder="Optional note…"
+                  style="resize:vertical;">{{ form_data.get('note','') if form_data else '' }}</textarea>
+      </div>
+
+      <!-- Recurring toggle -->
+      <div style="padding:14px;border-radius:12px;background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);margin-bottom:20px;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" name="is_recurring" id="recurringToggle"
+                 onchange="document.getElementById('recurrenceGroup').style.display=this.checked?'block':'none'"
+                 style="accent-color:var(--neon-purple);width:16px;height:16px;">
+          <span style="font-weight:600;font-size:.9rem;">🔄 Recurring Expense</span>
+        </label>
+        <div id="recurrenceGroup" style="display:none;margin-top:12px;">
+          <select name="recurrence" class="form-control">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly" selected>Monthly</option>
+            <option value="monthly" selected>Quarterly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="d-flex gap-12">
+        <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center;padding:13px;">
+          ＋ Add Expense
+        </button>
+        <a href="{{ url_for('expenses.list_expenses') }}" class="btn btn-secondary">Cancel</a>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- AI tip box -->
+  <div class="tip-card info" style="margin-top:16px;">
+    <span class="tip-icon">🤖</span>
+    <div>
+      <div class="tip-title">AI Anomaly Detection</div>
+      <div class="tip-msg">SpendWise will automatically flag this expense if it's unusually high for its category compared to your spending history.</div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
