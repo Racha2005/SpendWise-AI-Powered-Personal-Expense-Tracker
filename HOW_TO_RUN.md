@@ -1,6 +1,6 @@
 # SpendWise — Exact Run Commands (Windows / PowerShell)
 
-Your project path:
+Use your correct project path:
 ```
 C:\Users\DELL\Downloads\spendwise_project\spendwise
 ```
