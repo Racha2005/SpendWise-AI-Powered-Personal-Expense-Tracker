@@ -1,6 +1,7 @@
 # SpendWise — AI-Powered Personal Expense Tracker
 ## Project Architecture
 
+```
 spendwise/
 ├── app/
 │   ├── __init__.py                 # Flask application factory
@@ -87,7 +88,7 @@ spendwise/
 ├── HOW_TO_RUN.md                   # Setup guide
 ├── PROJECT_DETAILS.md              # Full documentation
 └── PROJECT_ARCHITECTURE.md         # Architecture documentation
-
+```
 
 ## Database: spendwise_db
 
