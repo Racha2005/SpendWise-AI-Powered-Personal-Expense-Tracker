@@ -59,7 +59,6 @@ This creates a complete finance analytics ecosystem:
 * Recommendation engine
 * Power BI integration
 
----
 
 ## **Out of Scope**
 
@@ -85,7 +84,6 @@ This creates a complete finance analytics ecosystem:
 * Currency preference
 * Monthly income management
 
----
 
 ## **Expense Management**
 
@@ -99,7 +97,6 @@ This creates a complete finance analytics ecosystem:
 * Notes and tags
 * Recurring expense management
 
----
 
 ## **Budget Management**
 
@@ -110,7 +107,6 @@ This creates a complete finance analytics ecosystem:
 * Visual progress bars
 * Overspending alerts
 
----
 
 ## **Analytics Dashboard (Flask)**
 
@@ -122,7 +118,6 @@ This creates a complete finance analytics ecosystem:
 * Top expenses analysis
 * Budget usage visualization
 
----
 
 ## **AI/ML Features**
 
@@ -130,13 +125,11 @@ This creates a complete finance analytics ecosystem:
 
 Uses **Linear Regression** to predict the next three months of expenses.
 
----
 
 ### **Anomaly Detection**
 
 Uses the **IQR statistical method** to identify unusual spending.
 
----
 
 ### **Financial Health Score**
 
@@ -148,7 +141,6 @@ Calculates a weighted score based on:
 * Category diversity
 * Anomaly ratio
 
----
 
 ### **Personalized Recommendations**
 
@@ -158,7 +150,6 @@ Provides:
 * Budget optimization tips
 * Saving recommendations
 
----
 
 ## **Dashboard UI**
 
@@ -169,7 +160,6 @@ Provides:
 * Recent transactions
 * Interactive filtering
 
----
 
 ## **Power BI Dashboard**
 
@@ -186,7 +176,6 @@ Power BI is integrated using MySQL ODBC for advanced visual analytics.
 * Clustered Bar Chart
 * Line Chart
 
----
 
 ### **Interactive Slicers**
 
@@ -245,7 +234,6 @@ Power BI is integrated using MySQL ODBC for advanced visual analytics.
 | Notebook       | Jupyter Notebook          | Testing and analysis  |
 | Environment    | venv                      | Dependency management |
 
----
 
 ## **Skills Demonstrated**
 
@@ -266,7 +254,6 @@ Power BI is integrated using MySQL ODBC for advanced visual analytics.
 
 SpendWise follows a modular multi-layer architecture.
 
----
 
 ## **Architecture Layers**
 
@@ -287,7 +274,6 @@ Responsibilities:
 * Charts
 * Dashboard rendering
 
----
 
 ### **2. Application Layer**
 
@@ -302,7 +288,6 @@ Responsibilities:
 * Routing
 * Session handling
 
----
 
 ### **3. Database Layer**
 
@@ -319,7 +304,6 @@ Stores:
 * Predictions
 * Audit logs
 
----
 
 ### **4. AI/ML Layer**
 
@@ -330,7 +314,6 @@ Handles:
 * Financial health scoring
 * Recommendations
 
----
 
 ### **5. BI Layer**
 
@@ -345,7 +328,6 @@ Handles:
 * Comparative reports
 * Visual insights
 
----
 
 ## **Architecture Flow**
 
@@ -367,7 +349,6 @@ SpendWise uses a relational database:
 
 **spendwise_db**
 
----
 
 ## **Main Tables**
 
@@ -385,7 +366,6 @@ Fields:
 * currency
 * theme
 
----
 
 ### **expenses**
 
@@ -402,7 +382,6 @@ Fields:
 * payment_method
 * recurring_flag
 
----
 
 ### **categories**
 
@@ -417,7 +396,6 @@ Fields:
 * color
 * is_default
 
----
 
 ### **budgets**
 
@@ -431,7 +409,6 @@ Fields:
 * amount
 * budget_month
 
----
 
 ### **ml_predictions**
 
@@ -445,7 +422,6 @@ Fields:
 * predicted_value
 * generated_at
 
----
 
 ### **audit_log**
 
@@ -458,7 +434,6 @@ Fields:
 * action
 * created_at
 
----
 
 ## **Relationships**
 
